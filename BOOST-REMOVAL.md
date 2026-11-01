@@ -40,7 +40,7 @@ construction. Revised order, each step keeps ctest green:
 - [ ] 2d': `wamp_uri`: `boost::regex` -> hand-rolled char-class validator
       (parity table in `test/unit/test_wamp_uri.cpp` gates;
       `bench/uri_bench` must not regress).
-- [ ] 2e': daemon CLI: `boost::program_options` -> hand-rolled parser
+- [x] 2e': daemon CLI: `boost::program_options` -> hand-rolled parser
       (e2e CLI matrix gates).
 - [ ] 2f' (big): networking step, absorbing old 2a + 2b-timer: add
       `third-party/asio` submodule (xliang76/asio, pin 1.30.x), re-pin
