@@ -72,6 +72,16 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   LD_LIBRARY_PATH, jammy-built daemon floor GLIBCXX_3.4.29/GLIBC_2.34.
   Blocked on owner approval only for: pushing this branch so Actions actually
   runs (and the README badge can be validated against a real green run).
+- 2026-11-01: **P4 performance gate PASSED.** Interleaved same-session A/B
+  of the Boost baseline tree, the ported GCC-13 tree and the jammy GCC-11
+  cross-built tree (2 runs each, fresh daemon per run, machine verified at
+  baseline-comparable state - an earlier slow session showing 810 MB/s on
+  BOTH trees is documented in RESULTS.md as machine state). Medians vs
+  BASELINE.md: pubsub 196.8k/199.2k vs 186.2k (+5.7%/+7.0%, faster -
+  favorable, outside-band, recorded), rpc mean/p50 within +0.4%/-1.3%,
+  512 KiB payload +0.1%/-0.9%, uri validator 13-19 ns/op vs 478-605
+  (30-45x, is_valid_uri clause cleared massively). Results in
+  `bench/RESULTS.md`; P3 committed as `338ac8f`.
 
 ## Phase P0 - Guardrails first (no code change)
 
@@ -187,11 +197,17 @@ See PLATFORM.md for the matrix and methods.
 
 ## Phase P4 - Performance gate (goal 3 acceptance)
 
-- [ ] Rebuild ported tree Release on 24.04; re-run bench harness; compare to
-      `bench/BASELINE.md`. Acceptance: throughput/latency within +/- 5%;
-      `is_valid_uri` >= baseline (hand-rolled validator should beat regex).
-- [ ] Repeat on 22.04 (runner artifact or jammy toolchain prefix).
-- [ ] Record results here + in `bench/RESULTS.md`.
+- [x] Rebuild ported tree Release on 24.04; re-run bench harness; compare to
+      `bench/BASELINE.md`. DONE 2026-11-01: PASS on every gated metric
+      (worst regression +1.3% rpc p50, within noise; pubsub +5.7% FASTER,
+      outside the band in the good direction - recorded deviation; uri
+      validator 30-45x below the regex baseline, gate clause satisfied with
+      margin). Full tables + A/B method in `bench/RESULTS.md`.
+- [x] Repeat on 22.04: executed with the jammy g++-11 11.4.0 cross-toolchain
+      binaries running against jammy's libstdc++ (same interleaved session;
+      at-or-better than baseline on every e2e metric, pubsub +7.0%). Native
+      runner repeat rides the CI matrix (pending push).
+- [x] Record results here + in `bench/RESULTS.md` (written 2026-11-01).
 
 ## Phase P5 - Finalize
 
