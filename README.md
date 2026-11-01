@@ -15,8 +15,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 You need the following installed:
 
-- A C++17-compatible compiler toolchain (minimum supported versions: gcc-11, clang-13;
-  i.e. the compilers shipped with Ubuntu 22.04 and newer)
+- A C++20-compatible compiler toolchain (minimum supported versions: gcc-11, clang-16;
+  gcc-11 is the compiler shipped with Ubuntu 22.04 and is the verified floor)
 - CMake 3.16 or newer
 
 No other system libraries: everything else (standalone Asio, websocketpp,

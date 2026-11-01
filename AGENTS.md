@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Bonefish: a C++17 WAMP router (library + standalone daemon), zero Boost — the
+Bonefish: a C++20 WAMP router (library + standalone daemon), zero Boost — the
 platform layer is standalone Asio + STL (2026-11 upgrade program; it began as a
 2015 C++11/Boost codebase, modernized through P0–P4, see PROGRESS.md).
 
@@ -12,7 +12,8 @@ platform layer is standalone Asio + STL (2026-11 upgrade program; it began as a
   (so `make bonefish` builds the *library*; the daemon binary lands at `build/daemon/bonefish`).
 - `examples/integration.cpp` → embedded-library usage example.
 - `third-party/` → git submodules (header-only: msgpack-c, rapidjson,
-  json-msgpack, cppcodec, websocketpp 0.8.2; plus standalone Asio 1.30.2),
+  json-msgpack, cppcodec, websocketpp 0.8.2 + C++20 fix; plus standalone
+  Asio 1.30.2),
   wired via `include_directories` in the
   root `CMakeLists.txt`. Run `git submodule update --init` (deliberately NOT
   `--recursive`: nested submodules inside the third-party pins are their own
@@ -22,7 +23,7 @@ platform layer is standalone Asio + STL (2026-11 upgrade program; it began as a
 
 ## Build (verified on this machine)
 
-The build needs no system dependencies beyond a C++17 compiler (Boost is fully
+The build needs no system dependencies beyond a C++20 compiler (Boost is fully
 gone since P2). This machine has no `cmake` on PATH; the working toolchain set
 lives in `/tmp/opencode` (re-create if wiped): CMake **3.22.6**. CMake >= 3.16
 works now (`cmake_minimum_required(VERSION 3.16)` since P1). The jammy

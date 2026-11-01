@@ -99,6 +99,27 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   way: the fix touches 4 headers, not 5 (client_endpoint.hpp has no
   line-initial template-id declarations). Awaiting owner push of the branch
   -> then re-pin + flip CMAKE_CXX_STANDARD 20.
+- 2026-11-01: **C++20 flip landed.** Owner pushed `feature/modernize-cpp20`
+  and merged PR #1 into xliang76/websocketpp. Caveat found while re-pinning:
+  the PR's base was the fork's `master`, whose tree predates the include/
+  restructure - merge commit `fe01764` carries the fix as a parent but an
+  unusable 0.3-era layout, and `develop` was deleted - so the pin moved to
+  `f49d256` (0.8.2-2-gf49d256: develop + the 13-line patch, fetchable as the
+  fix-branch head) rather than the merge commit. `CMAKE_CXX_STANDARD` 17 ->
+  20 in root CMakeLists (stale blocked-deviation comment replaced; the
+  template-id-cdtor suppression is obsolete now the vendored headers are
+  fixed). Fresh-build verification, all `-std=c++20 -Wall -Werror`: Release
+  + Debug + sanitizer (liveness: 956 asan/ubsan symbols, e2e sanitizer_scan
+  clean) on GCC 13 and jammy cross on GCC 11 -> 4/4 ctest in every matrix
+  cell. ABI floors unchanged (noble daemon GLIBCXX_3.4.32, jammy 3.4.29 =
+  CI <=3.4.30 FAIL gate holds); daemon boost symbols still 0. Bench A/B,
+  medians of 2 runs: rpc p50 30.82/30.68us vs 32.5 baseline (-5.3%, faster),
+  pubsub 197.2k/184.6k vs 186.2k (median +2.5%) - within or better than the
+  +/-5% gate. Docs synced: README deps (C++20, gcc-11 verified floor,
+  clang-16 documented), PLATFORM standard paragraph, BOOST-REMOVAL 2g'
+  marked resolved, AGENTS header + third-party line. The jammy toolchain
+  file was recreated at build/scratch/jammy/toolchain-jammy.cmake (lost in
+  earlier scratch cleanup; sysroot survived).
 
 ## Phase P0 - Guardrails first (no code change)
 
@@ -183,7 +204,9 @@ and timer fix folded into the networking step 2f').
       `develop`). Rest of tree verified C++20-clean with a 13-line
       header patch (saved as `websocketpp-cpp20-fix` in BOOST-REMOVAL.md
       2g' notes). Unblock = push patch to xliang76/websocketpp (owner
-      approval) + re-pin + set C++20.
+      approval) + re-pin + set C++20. **RESOLVED 2026-11-01:** patch pushed
+      and merged (PR #1), pin -> f49d256, `CMAKE_CXX_STANDARD 20` flipped;
+      full C++20 verification in the status log and BOOST-REMOVAL.md 2g'.
 
 ## Phase P3 - Platform validation (22.04 + 24.04)
 
@@ -239,8 +262,9 @@ See PLATFORM.md for the matrix and methods.
       P0-era history with the shipped-architecture status note.
 - [ ] BLOCKED on owner: merge working branch to `master` (PR vs direct
       decision) + tag; also the push that turns CI + the README badge green
-      (all workflow logic already validated locally, see P3) and the
-      websocketpp C++20 patch push (BOOST-REMOVAL.md 2g').
+      (all workflow logic already validated locally, see P3). The websocketpp
+      C++20 patch is DONE (pushed + merged as PR #1; bonefish re-pinned to
+      f49d256 and C++20 flipped, see status log).
 
 ## Risks / watch items
 

@@ -1,16 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(bonefish VERSION 0.1.0 LANGUAGES CXX)
 
-# C++20 is still blocked on the vendored websocketpp pin (0.8.2, xliang76
-# fork master): its endpoint/logger headers use template-ids for constructors
-# and destructors, which C++20 rejects (verified: the full tree builds clean
-# under -std=c++20 with a 13-line mechanical fix to 4 headers; patch saved as
-# websocketpp-cpp20-fix in the program notes). The fix now exists as a LOCAL
-# branch feature/modernize-cpp20 (f49d256) in the xliang76/websocketpp fork
-# checkout but is not pushed yet, so pinning it would not be fetchable per
-# GIT-OWNERSHIP.md. Unblock path: push that branch (owner approval), re-pin,
-# set CMAKE_CXX_STANDARD 20 here.
-set(CMAKE_CXX_STANDARD 17)
+# C++20 baseline since the vendored websocketpp fork carries the C++20 fix
+# (P048R2: template-ids on constructor/destructor declarations are ill-formed
+# in C++20; upstream 0.8.2 spells them with template-ids and only builds at
+# <=C++17). Pin xliang76/websocketpp f49d256 drops the template-ids on the
+# four affected headers, so the whole tree - including the vendored headers -
+# builds cleanly at -std=c++20 with -Wall -Werror.
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

@@ -11,14 +11,13 @@
 | system Boost (UNUSED after P2) | 1.74 | 1.83 |
 | Python test deps | python3-msgpack, python3-websockets | same |
 
-C++17 is the current standard (set in P1). The planned C++20 bump stayed
-blocked after P2: websocketpp 0.8.2's template-id constructors/destructors
-are ill-formed under `-std=c++20`, and the upstream fix lives only on the
-zaphoyd `develop` branch, which the xliang76 fork has not synced (GIT-
-OWNERSHIP.md forbids pinning non-xliang76 commits). Everything else already
-compiles clean at `-std=c++20` (verified with a 13-line header patch; see
-BOOST-REMOVAL.md 2g'). CMake >= 3.16 throughout: covered by GCC 11 (jammy)
-and up.
+C++20 is the current standard (flipped 2026-11 after the websocketpp fix; set
+in root CMakeLists.txt). The bump was previously blocked because websocketpp
+0.8.2's template-id constructors/destructors are ill-formed under `-std=c++20`;
+the 13-line fix now lives in the xliang76 fork (PR #1) and the submodule pins
+commit f49d256 (0.8.2 + fix). Everything builds clean at `-std=c++20` with
+`-Wall -Werror` on GCC 11 and GCC 13 (see BOOST-REMOVAL.md 2g' for the full
+history). CMake >= 3.16 throughout: covered by GCC 11 (jammy) and up.
 Do NOT use `std::format`, `std::span`-dependent or concepts features that GCC 11
 lacks without checking - jammy libstdc++ 11 has no `<format>`.
 

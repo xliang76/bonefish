@@ -72,13 +72,21 @@ construction. Revised order, each step keeps ctest green:
       `~endpoint<connection,config>() {}` -> `~endpoint() {}`. Tested
       diff kept at /tmp/opencode/websocketpp-cpp20-fix.patch
       (regenerable by applying that rewrite to the 0.8.2 pin).
-      STATUS 2026-11-01: the patch is COMMITTED in the fork checkout at
-      ../websocketpp on branch feature/modernize-cpp20 (commit f49d256,
-      parent = the current pin 1b11fd3; verified: whole bonefish tree +
-      syslog/basic logger instantiations syntax-clean at -std=c++20).
-      REMAINING: push that branch to xliang76/websocketpp (owner),
-      `git submodule update --remote`-free re-pin to f49d256, flip
-      CMAKE_CXX_STANDARD 20.
+      STATUS 2026-11-01 (RESOLVED): patch committed as f49d256 on branch
+      feature/modernize-cpp20 (parent = old pin 1b11fd3), pushed to
+      xliang76/websocketpp and merged via PR #1. NOTE: the PR merged onto
+      the fork's `master`, whose tree predates the include/-layout restructure
+      (merge fe01764 has the fix as a parent but an unusable 0.3-era tree),
+      and `develop` was deleted - so the bonefish pin tracks f49d256
+      (0.8.2 + fix, fetchable as the branch head), NOT fe01764. Re-pin done:
+      `git submodule status` shows 0.8.2-2-gf49d256, and
+      `CMAKE_CXX_STANDARD 20` is set in root CMakeLists.txt. Verified at the
+      flip: fresh Release/Debug/sanitizer builds on GCC 13 and a Release cross
+      build on jammy GCC 11, all -std=c++20 -Wall -Werror, 4/4 ctest each
+      (sanitizer_scan clean, 956 sanitizer symbols); daemon Boost symbol
+      count still 0; ABI floors unchanged (noble 3.4.32, jammy 3.4.29); bench
+      medians within/better than the +/-5% gate (rpc p50 30.7us vs 32.5
+      baseline, pubsub 190.9k/s vs 186.2k baseline).
 
 Remaining facilities not in the list (verified absent): none other beyond
 `boost/preprocessor` (trace, 2c') and the Boost.Asio engine (2f').
