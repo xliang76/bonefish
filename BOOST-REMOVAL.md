@@ -21,6 +21,43 @@ mechanical: the P0 test/benchmark harness (PROGRESS.md) run before/after.
 | `boost/exception/exception.hpp` | 1 include | native | remove (unused after future port) | verify at port time |
 | Boost components in CMake | program_options, system, thread (+regex for GCC<4.9) | root CMakeLists | deleted (`thread` was only needed for boost futures) | final audit: no `boost` string in any CMakeLists; `nm`/`ldd` clean |
 
+## Ordered steps (revised 2026-11-01, before P2 started)
+
+Original order assumed `boost::system::error_code` was a mechanical rename
+("Asio's EC *is* std's"). TRUE only for standalone Asio (and Boost >= 1.69),
+but the baseline pins **Boost 1.65.1**, where `boost::system::error_code` is
+a distinct type with no `std::error_code` interop and `deadline_timer` has
+no `expires_after`. Renaming EC (2a) or the invocation timer (2b) in
+isolation would not compile against the Asio engine still under
+construction. Revised order, each step keeps ctest green:
+
+- [x] 2a': `boost::bind` -> lambdas (`daemon/daemon.cpp`).
+- [x] 2b': `boost::future/promise/copy_exception/current_exception` ->
+      `std::` (`native/` only; drop `boost/exception/exception.hpp`).
+- [x] 2c': `trace.hpp`: BOOST_PP varargs -> variadic templates,
+      `boost::format` -> std-only formatter; keep `%N%` semantics
+      (`test/unit/test_trace.cpp` gates).
+- [ ] 2d': `wamp_uri`: `boost::regex` -> hand-rolled char-class validator
+      (parity table in `test/unit/test_wamp_uri.cpp` gates;
+      `bench/uri_bench` must not regress).
+- [ ] 2e': daemon CLI: `boost::program_options` -> hand-rolled parser
+      (e2e CLI matrix gates).
+- [ ] 2f' (big): networking step, absorbing old 2a + 2b-timer: add
+      `third-party/asio` submodule (xliang76/asio, pin 1.30.x), re-pin
+      websocketpp to a standalone-Asio-capable commit, then ALL Asio
+      boundaries at once: `boost/asio/*` -> `asio/*`, `io_service` ->
+      `io_context`, `deadline_timer` -> `steady_timer` +
+      `expires_after(std::chrono::milliseconds)` (the documented
+      monotonic-clock fix), `boost::system::error_code` ->
+      `std::error_code` (28 uses / 7 headers), `ASIO_STANDALONE`.
+- [ ] 2g' (= old 2h): remove `find_package(Boost)`, `BOOST_COMPONENTS`,
+      `${Boost_LIBRARIES}` links. Final audit: `grep -rn boost src daemon
+      examples test` empty; `nm -C libbonefish.a | grep -ci boost` = 0;
+      `ldd` daemon free of Boost.
+
+Remaining facilities not in the list (verified absent): none other beyond
+`boost/preprocessor` (trace, 2c') and the Boost.Asio engine (2f').
+
 ## Performance guardrails
 
 1. Benchmark baseline recorded from the **as-is** build before any port commit
