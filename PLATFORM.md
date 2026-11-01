@@ -50,16 +50,28 @@ ctest --test-dir build --output-on-failure
 1. Primary: GitHub Actions `runs-on: ubuntu-22.04` (native runner). Workflow
    `.github/workflows/ci.yml`: 22.04/24.04 x Debug/Release + ASan/UBSan job on
    24.04 scanning captured daemon stderr for sanitizer reports.
-2. Local fallback (no root needed): download official jammy
-   `g++-11`/`gcc-11`/`libstdc++-11-dev` debs, `dpkg -x` them to a prefix, and
-   configure through a small toolchain file pointing `CMAKE_CXX_COMPILER` at
-   the extracted g++-11; run the full ctest suite with that prefix's
-   `libstdc++` on `LD_LIBRARY_PATH`.
+2. Local fallback (no root needed, verified 2026-11-01 under
+   `build/scratch/jammy`): download official jammy debs and `dpkg -x` each as
+   a standalone command into one sysroot prefix - `cpp-11 gcc-11 g++-11
+   libgcc-11-dev libstdc++-11-dev` (gcc-11 11.4.0-1ubuntu1~22.04.3),
+   `libstdc++6` + `libgcc-s1` (gcc-12 12.3.0, jammy's runtime), `libc6` +
+   `libc6-dev` (glibc 2.35-0ubuntu3.15) and `linux-libc-dev` (UAPI headers).
+   Configure with `-DCMAKE_CXX_COMPILER=$P/usr/bin/g++-11` and `--sysroot=$P`
+   in `CMAKE_CXX_FLAGS`, then run the full ctest suite with
+   `LD_LIBRARY_PATH=$P/usr/lib/x86_64-linux-gnu` (jammy libstdc++ ceiling is
+   GLIBCXX_3.4.30, so a passing run also proves the jammy ABI floor).
 
 ## ABI / compatibility checks
 
-- Ported binaries must load on stock 22.04: scan for the highest required
-  GLIBCXX symbol version and require `<= GLIBCXX_3.4.29`:
+- Measured at P3 (2026-11-01): the daemon built here (noble, GCC 13) needs
+  `GLIBCXX_3.4.32`, pulled in unconditionally by `std::ios_base_library_init`
+  (any `<iostream>` user, GCC >= 12). A noble-built binary therefore cannot
+  meet a "loads on stock jammy" floor without `-static-libstdc++`; shipping
+  binaries across distros is a packaging concern (out of scope below), so
+  the floor guard is anchored where it is meaningful:
+  - CI's ubuntu-22.04 job FAILS if its daemon requires more than
+    `GLIBCXX_3.4.30` (jammy's libstdc++6 ceiling) - catches toolchain drift;
+  - the ubuntu-24.04 job only reports its floor.
   `objdump -T build/daemon/bonefish | grep -o 'GLIBCXX_[0-9.]*' | sort -Vu | tail -1`
 - Keep `CXX_EXTENSIONS OFF` (no GNU-only extensions creeping in).
 

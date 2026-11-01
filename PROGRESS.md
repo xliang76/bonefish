@@ -52,6 +52,26 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   dtor headers are the sole blocker, no fetchable xliang76 commit fixes it;
   a 13-line patch proving the rest of the tree is C++20-clean is recorded
   in BOOST-REMOVAL.md 2g' - needs an approved push to xliang76/websocketpp.
+- 2026-11-01: **P3 executed (local side).** Authored `.github/workflows/
+  ci.yml` (22.04/24.04 x Debug/Release matrix + ASan/UBSan job, non-recursive
+  submodule checkout, jammy GLIBCXX<=3.4.30 FAIL gate, 24.04 floor report).
+  Verified the sanitizer job's mechanics locally: added `option(sanitizers)`
+  to the root CMakeLists (lowercase name - the uppercase CLI form is silently
+  ignored and yields a fake-green run; caught exactly that pitfall during
+  verification). With sanitizers genuinely live, `test_messages` aborted on a
+  **real heap-use-after-free**: the P0 harness helper `unpack_array` returned
+  msgpack objects whose zone died with the local `object_handle`; fixed by
+  threading the handle through the caller (5 call sites), green under ASan and
+  normal builds. The library itself stayed clean under ASan+LSan+UBSan across
+  the full e2e traffic + embedded example. ABI floor re-anchored from
+  measurements (noble builds need GLIBCXX_3.4.32 via
+  `std::ios_base_library_init` - gate moved to the 22.04 job; PLATFORM.md
+  rewritten). Jammy cross-check executed: deb-extracted g++-11 11.4.0 sysroot
+  (recipe verified in PLATFORM.md), full Release cross-build clean under
+  -Wall -Werror, 4/4 ctest green with jammy's libstdc++ 12.3 on
+  LD_LIBRARY_PATH, jammy-built daemon floor GLIBCXX_3.4.29/GLIBC_2.34.
+  Blocked on owner approval only for: pushing this branch so Actions actually
+  runs (and the README badge can be validated against a real green run).
 
 ## Phase P0 - Guardrails first (no code change)
 
@@ -143,12 +163,27 @@ and timer fix folded into the networking step 2f').
 See PLATFORM.md for the matrix and methods.
 
 - [ ] GitHub Actions workflow: ubuntu-22.04/24.04 x Debug/Release + ASan/UBSan
-      job with sanitizer-output scan of daemon stderr. Verify: green run on
-      xliang76 (Actions must be enabled in repo settings).
-- [ ] ABI floor: daemon/test binaries require at most `GLIBCXX_3.4.29`
-      (22.04 runtime) - `objdump -T` scan.
-- [ ] Native 22.04 run: Actions runner is the primary; local fallback is the
-      jammy-g++-11 deb-extraction recipe in PLATFORM.md (no docker here).
+      job with sanitizer-output scan of daemon stderr. DONE (authored + locally
+      validated 2026-11-01): `.github/workflows/ci.yml` YAML-verified; the
+      sanitizer path proven end-to-end on this host (`-Dsanitizers=ON` build,
+      959 asan/ubsan refs in libbonefish.a, 4/4 ctest green incl.
+      sanitizer_scan under `ASAN_OPTIONS=halt_on_error=1:abort_on_error=1:
+      detect_leaks=1` - which also caught and got fixed a real use-after-free
+      in `test/unit/test_messages.cpp`, see status log). REMAINING: green run
+      on xliang76 (needs an approved push; Actions must be enabled).
+- [x] ABI floor (re-anchored with measurements - see PLATFORM.md "ABI /
+      compatibility checks"): jammy-GCC-11-built daemon needs only
+      `GLIBCXX_3.4.29` + `GLIBC_2.34` (within jammy); a noble/GCC-13 build
+      unavoidably needs `GLIBCXX_3.4.32` (`std::ios_base_library_init`), so
+      the CI FAIL gate lives on the ubuntu-22.04 job (<= 3.4.30) and the
+      24.04 job only reports its floor.
+- [x] Native 22.04 run: Actions runner is primary (pending push); local
+      fallback EXECUTED 2026-11-01 per the PLATFORM.md deb-extraction recipe
+      (build/scratch/jammy): full tree cross-built with jammy's g++-11
+      11.4.0 (`--sysroot`, Release, -Wall -Werror clean) and the complete
+      ctest suite (unit x3 + e2e_daemon, 4/4) passed with jammy's libstdc++
+      12.3 on `LD_LIBRARY_PATH` - binaries verified resolving libstdc++ from
+      the jammy sysroot, so this also proves the 22.04 runtime floor.
 
 ## Phase P4 - Performance gate (goal 3 acceptance)
 

@@ -83,10 +83,14 @@ const type_code_case type_table[] = {
     { wamp_message_type::YIELD,         70, "yield" },
 };
 
-std::vector<msgpack::object> unpack_array(const expandable_buffer& buf)
+// The unpacked objects reference the zone owned by `handle`, so callers must
+// keep `handle` alive at least as long as the returned vector (ASan caught
+// the dangling-zone read when the handle was dropped at return).
+std::vector<msgpack::object> unpack_array(const expandable_buffer& buf,
+        msgpack::object_handle& handle)
 {
-    msgpack::object_handle h = msgpack::unpack(buf.data(), buf.size());
-    return h.get().as<std::vector<msgpack::object> >();
+    handle = msgpack::unpack(buf.data(), buf.size());
+    return handle.get().as<std::vector<msgpack::object> >();
 }
 
 } // anonymous namespace
@@ -155,7 +159,8 @@ BF_TEST(call_msgpack_roundtrip_and_wire_layout)
     expandable_buffer buf = serializer.serialize(message);
 
     // Exact wire array: [48, 1234, {}, "com.example.add2", [2, 3]]
-    std::vector<msgpack::object> fields = unpack_array(buf);
+    msgpack::object_handle unpacked;
+    std::vector<msgpack::object> fields = unpack_array(buf, unpacked);
     BF_ASSERT_EQ(fields.size(), static_cast<size_t>(5));
     BF_ASSERT_EQ(fields[0].as<int>(), 48);
     BF_ASSERT_EQ(fields[1].as<uint64_t>(), static_cast<uint64_t>(1234));
@@ -231,7 +236,8 @@ BF_TEST(event_wire_field_order)
 
     msgpack_serializer serializer;
     expandable_buffer buf = serializer.serialize(message);
-    std::vector<msgpack::object> fields = unpack_array(buf);
+    msgpack::object_handle unpacked;
+    std::vector<msgpack::object> fields = unpack_array(buf, unpacked);
     // [36, Subscription, Publication, Details, Arguments]
     BF_ASSERT_EQ(fields.size(), static_cast<size_t>(5));
     BF_ASSERT_EQ(fields[0].as<int>(), 36);
@@ -250,7 +256,8 @@ BF_TEST(goodbye_abort_wire_layout)
     goodbye.set_details(msgpack_empty_map());
     goodbye.set_reason("wamp.close.normal");
     expandable_buffer gb = serializer.serialize(goodbye);
-    std::vector<msgpack::object> gf = unpack_array(gb);
+    msgpack::object_handle gunpack;
+    std::vector<msgpack::object> gf = unpack_array(gb, gunpack);
     BF_ASSERT_EQ(gf.size(), static_cast<size_t>(3));
     BF_ASSERT_EQ(gf[0].as<int>(), 6);
     BF_ASSERT_EQ(gf[2].as<std::string>(), std::string("wamp.close.normal"));
@@ -259,7 +266,8 @@ BF_TEST(goodbye_abort_wire_layout)
     abort.set_details(msgpack_empty_map());
     abort.set_reason("wamp.error.invalid_roles");
     expandable_buffer ab = serializer.serialize(abort);
-    std::vector<msgpack::object> af = unpack_array(ab);
+    msgpack::object_handle unpack2;
+    std::vector<msgpack::object> af = unpack_array(ab, unpack2);
     BF_ASSERT_EQ(af.size(), static_cast<size_t>(3));
     BF_ASSERT_EQ(af[0].as<int>(), 3);
     BF_ASSERT_EQ(af[2].as<std::string>(), std::string("wamp.error.invalid_roles"));
@@ -275,7 +283,8 @@ BF_TEST(error_wire_layout)
 
     msgpack_serializer serializer;
     expandable_buffer buf = serializer.serialize(message);
-    std::vector<msgpack::object> fields = unpack_array(buf);
+    msgpack::object_handle unpacked;
+    std::vector<msgpack::object> fields = unpack_array(buf, unpacked);
     // [8, CALL, Request, Details, Error]
     BF_ASSERT_EQ(fields.size(), static_cast<size_t>(5));
     BF_ASSERT_EQ(fields[0].as<int>(), 8);

@@ -16,6 +16,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(shared "build bonefish as a shared library" OFF)
 option(stdlib "When building with clang, you can choose libc++ (default) or libstdc++" OFF)
+option(sanitizers "build with AddressSanitizer + UndefinedBehaviorSanitizer (GCC/Clang, used by the CI sanitizer job)" OFF)
+
+if(sanitizers)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined -fno-omit-frame-pointer -g")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=address,undefined")
+endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if (NOT stdlib)

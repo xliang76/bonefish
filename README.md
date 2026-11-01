@@ -1,6 +1,8 @@
 Bonefish
 ========
 
+[![CI](https://github.com/xliang76/bonefish/actions/workflows/ci.yml/badge.svg)](https://github.com/xliang76/bonefish/actions/workflows/ci.yml)
+
 Bonefish is an open-source C++ WAMP application router that enables building applications from loosely-coupled components. It currently supports the WAMP Basic Profile and RawSocket Transport as part of the Advanced Profile. Bonefish is capable of hosting multiple routers each with their own realm and associated set of websocket and/or rawsocket endpoints.
 
 For more information on WAMP, see http://wamp-proto.org/
@@ -16,7 +18,10 @@ You need the following installed:
 - A C++17-compatible compiler toolchain (minimum supported versions: gcc-11, clang-13;
   i.e. the compilers shipped with Ubuntu 22.04 and newer)
 - CMake 3.16 or newer
-- Boost. It uses the ASIO, system and thread components.
+
+No other system libraries: everything else (standalone Asio, websocketpp,
+msgpack-c, rapidjson, json-msgpack, cppcodec) is vendored as git submodules
+under `third-party/`.
 
 ## Getting the Code
 
@@ -98,6 +103,7 @@ This will enable debug tracing which is currently sent to the console.
 
 - **shared** - if ON, bonefish will be built as a shared library. OFF implies it will be built as a static library (default).
 - **stdlib** - when building with Clang, you can choose libc++ (default) or libstdc++.
+- **sanitizers** - if ON, builds with AddressSanitizer + UndefinedBehaviorSanitizer (used by the CI sanitizer job).
 
 ## Third Party Libraries
 
