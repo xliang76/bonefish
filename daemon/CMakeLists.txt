@@ -8,7 +8,6 @@ add_dependencies(bonefish_bin bonefish)
 
 target_link_libraries(bonefish_bin
     bonefish
-    ${Boost_LIBRARIES}
     ${CMAKE_DL_LIBS}
     ${CMAKE_THREAD_LIBS_INIT})
 

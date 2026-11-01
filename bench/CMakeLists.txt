@@ -11,7 +11,6 @@ add_executable(uri_bench uri_bench.cpp)
 add_dependencies(uri_bench bonefish)
 target_link_libraries(uri_bench
     bonefish
-    ${Boost_LIBRARIES}
     ${CMAKE_DL_LIBS}
     ${CMAKE_THREAD_LIBS_INIT})
 if (RT_FOUND)

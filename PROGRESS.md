@@ -41,6 +41,17 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   noted for P4), rpc p50 30.6 vs 31.7 us and 512KiB payload 815 vs 808
   MB/s within gate. Remaining: 2g' (drop find_package(Boost), C++20 bump,
   binary-level Boost audit).
+- 2026-11-01: **P2 complete (2g'); Boost fully removed.** All Boost is out
+  of the build system (find_package/BOOST_COMPONENTS/Boost_LIBRARIES/
+  Boost_INCLUDE_DIRS/Boost_USE_STATIC_LIBS across 7 CMakeLists); the tree
+  configures and builds with no BOOST_ROOT anywhere and passes 4/4 ctest.
+  Audit: 0 boost symbols in libbonefish.a and daemon (`nm -C`), 0 in
+  `strings`, `ldd` is libstdc++/libgcc/libc/libm only. Spot bench vs the
+  boost baseline held the gate (pubsub +10.6% faster). **C++20 stays
+  deferred** (documented deviation): websocketpp 0.8.2's template-id ctor/
+  dtor headers are the sole blocker, no fetchable xliang76 commit fixes it;
+  a 13-line patch proving the rest of the tree is C++20-clean is recorded
+  in BOOST-REMOVAL.md 2g' - needs an approved push to xliang76/websocketpp.
 
 ## Phase P0 - Guardrails first (no code change)
 
@@ -76,8 +87,9 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
       **Deviation:** C++20 is NOT set here because the baseline tree's
       boost::format and websocketpp 0.7 headers hard-break under `-std=c++20`
       (verified: `allocator::allocate(n,hint)` removal; template-id
-      constructor in `logger/basic.hpp`). C++17 compiles clean; bump to 20
-      in P2h when those dependencies are gone.
+      constructor in `logger/basic.hpp`). C++17 compiles clean. Later at 2g'
+      the bump still did not land: boost::format/0.7 are gone but 0.8.2 kept
+      the template-id ctor/dtor problem - see the 2g' deviation below.
       Verify DONE: fresh configure + full build on g++-13 (`-std=c++17`
       confirmed in flags.make), all 4 ctest cases green incl. e2e. DONE 2026-11-01.
 - [x] Delete `.travis.yml` (dead service), replace README badge + build section,
@@ -111,11 +123,20 @@ and timer fix folded into the networking step 2f').
       Asio's lazy fd creation; EBADF otherwise). Full ctest green;
       same-session A/B bench: pubsub +7% faster, rpc p50 and large
       payload within gate. DONE.
-- [ ] 2g' (= old 2h): remove `find_package(Boost)`, BOOST_COMPONENTS,
-      leftover `${Boost_LIBRARIES}` links; C++20 bump now that boost::format
-      and websocketpp 0.7 are gone. Verify (final Boost audit):
-      `grep -rn boost src daemon examples test` empty; `nm -C libbonefish.a
-      | grep -ci boost` = 0; `ldd` daemon has no boost libs; ctest green.
+- [x] 2g' (= old 2h): remove `find_package(Boost)`, BOOST_COMPONENTS,
+      leftover `${Boost_LIBRARIES}` links; C++20 bump attempt. DONE:
+      fresh configure without any `-DBOOST_ROOT` (zero Boost cache
+      entries), full `-Wall -Werror` build, 4/4 ctest green; final audit
+      `nm -C` libbonefish.a + daemon = 0 boost symbols, `strings` daemon
+      = 0, `ldd` only libstdc++/libgcc/libc/libm; spot bench vs boost
+      baseline: pubsub +10.6% (faster), rpc p50 +3.5% and 512KiB -0.4%
+      (within gate). **C++20 deviation:** NOT bumped - websocketpp 0.8.2
+      template-id ctors/dtors are ill-formed in C++20 and no fetchable
+      xliang76 commit contains the fix (fork has not synced zaphoyd
+      `develop`). Rest of tree verified C++20-clean with a 13-line
+      header patch (saved as `websocketpp-cpp20-fix` in BOOST-REMOVAL.md
+      2g' notes). Unblock = push patch to xliang76/websocketpp (owner
+      approval) + re-pin + set C++20.
 
 ## Phase P3 - Platform validation (22.04 + 24.04)
 

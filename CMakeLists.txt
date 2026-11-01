@@ -1,17 +1,21 @@
 cmake_minimum_required(VERSION 3.16)
 project(bonefish VERSION 0.1.0 LANGUAGES CXX)
 
-# C++17 is what the legacy Boost 1.65 / websocketpp 0.7 headers compile
-# cleanly against (verified on GCC 13). Bump to 20 in P2h once boost::format
-# and the old websocketpp pin are gone (both hard-break -std=c++20).
+# C++20 is still blocked on the vendored websocketpp pin (0.8.2, xliang76
+# fork master): its endpoint/logger headers use template-ids for constructors
+# and destructors, which C++20 rejects (verified: the full tree builds clean
+# under -std=c++20 with a 13-line mechanical fix to 5 headers; patch saved as
+# websocketpp-cpp20-fix in the program notes). The fix exists upstream but
+# only on the zaphoyd develop branch, which the xliang76 fork has not synced,
+# so pinning it would break the fetch-proven xliang76-only rule (GIT-
+# OWNERSHIP.md). Unblock path: push the patch to xliang76/websocketpp
+# (owner approval), re-pin, set CMAKE_CXX_STANDARD 20 here.
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(shared "build bonefish as a shared library" OFF)
 option(stdlib "When building with clang, you can choose libc++ (default) or libstdc++" OFF)
-
-set(BOOST_COMPONENTS program_options system thread)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     if (NOT stdlib)
@@ -53,10 +57,8 @@ set(CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Modules/")
 
 if(shared)
-    set(Boost_USE_STATIC_LIBS OFF)
     set(RT_USE_STATIC_LIBS OFF)
 else()
-    set(Boost_USE_STATIC_LIBS ON)
     set(RT_USE_STATIC_LIBS ON)
 endif()
 
@@ -67,10 +69,10 @@ endif()
 
 # Vendored standalone Asio (third-party/asio) replaces Boost.Asio
 # (BOOST-REMOVAL.md step 2f'); ASIO_STANDALONE also switches websocketpp
-# (>=0.8.0) onto the same Asio + std::error_code.
+# (>=0.8.0) onto the same Asio + std::error_code. No find_package(Boost)
+# remains: the Boost removal completed in step 2g'.
 add_definitions(-DASIO_STANDALONE)
 
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 find_package(RT)
 find_package(Threads)
 
@@ -82,7 +84,6 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/third-party/msgpack-c/include
     ${CMAKE_SOURCE_DIR}/third-party/rapidjson/include
     ${CMAKE_SOURCE_DIR}/third-party/websocketpp
-    ${Boost_INCLUDE_DIRS}
 )
 
 link_directories(${CMAKE_INSTALL_PREFIX}/lib)

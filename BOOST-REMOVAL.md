@@ -50,10 +50,29 @@ construction. Revised order, each step keeps ctest green:
       `expires_after(std::chrono::milliseconds)` (the documented
       monotonic-clock fix), `boost::system::error_code` ->
       `std::error_code` (28 uses / 7 headers), `ASIO_STANDALONE`.
-- [ ] 2g' (= old 2h): remove `find_package(Boost)`, `BOOST_COMPONENTS`,
+- [x] 2g' (= old 2h): remove `find_package(Boost)`, `BOOST_COMPONENTS`,
       `${Boost_LIBRARIES}` links. Final audit: `grep -rn boost src daemon
       examples test` empty; `nm -C libbonefish.a | grep -ci boost` = 0;
-      `ldd` daemon free of Boost.
+      `ldd` daemon free of Boost. DONE 2026-11-01: fresh configure with no
+      `-DBOOST_ROOT` and zero Boost cache entries, full `-Wall -Werror`
+      build, 4/4 ctest green; `nm -C` of libbonefish.a AND the daemon = 0,
+      `strings` daemon = 0 boost, `ldd` shows only libstdc++/libgcc/libc/
+      libm. **Deviation:** the planned C++20 bump did NOT land - websocketpp
+      0.8.2 uses template-ids for ctors/dtors (ill-formed in C++20) and the
+      fix exists only on zaphoyd `develop`, unsynced to the xliang76 fork,
+      so no fetchable xliang76 commit is C++20-clean. Verified the rest of
+      the tree IS clean: full build under `-std=c++20` succeeds with a
+      13-line mechanical header fix. Stay on C++17; unblock =
+      push that patch to xliang76/websocketpp (owner approval) + re-pin +
+      set `CMAKE_CXX_STANDARD 20`. The patch rewrites line-initial
+      template-id ctor/dtor declarations to plain names (same shape as
+      zaphoyd develop's fix) in 5 headers: logger/basic.hpp (7 sites),
+      logger/syslog.hpp (2), endpoint.hpp (1 dtor),
+      roles/server_endpoint.hpp (3), roles/client_endpoint.hpp (mirror
+      of endpoint.hpp), e.g. `~endpoint<connection,config>() {}` ->
+      `~endpoint() {}`. Tested diff kept at
+      /tmp/opencode/websocketpp-cpp20-fix.patch (regenerable by applying
+      that rewrite to the 0.8.2 pin).
 
 Remaining facilities not in the list (verified absent): none other beyond
 `boost/preprocessor` (trace, 2c') and the Boost.Asio engine (2f').

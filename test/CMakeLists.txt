@@ -12,7 +12,6 @@ function(bonefish_unit_test name)
     add_dependencies(${name} bonefish)
     target_link_libraries(${name}
         bonefish
-        ${Boost_LIBRARIES}
         ${CMAKE_DL_LIBS}
         ${CMAKE_THREAD_LIBS_INIT})
     if (RT_FOUND)
