@@ -1,0 +1,77 @@
+# Platform validation matrix for Ubuntu 22.04 + 24.04 (PLATFORM.md / P3).
+# GCC-only on purpose: it matches both targets' default toolchains
+# (see PLATFORM.md "Out of scope").
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-test:
+    name: ${{ matrix.os }} / ${{ matrix.build_type }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+        build_type: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Non-recursive on purpose: nested submodules inside the
+          # third-party pins (boostorg, googletest, ...) are upstream dev-only
+          # trees; the build needs only the top-level xliang76 pins
+          # (GIT-OWNERSHIP.md).
+          submodules: true
+          fetch-depth: 0
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3-msgpack python3-websockets
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_CXX_FLAGS="-Wno-error=class-memaccess -Wno-error=deprecated-declarations -Wno-error=sign-compare -Wno-error=parentheses -Wno-error=format-truncation -Wno-error=format-overflow -Wno-error=maybe-uninitialized -Wno-error=stringop-overflow -Wno-error=array-bounds -Wno-error=restrict"
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: ABI floor (22.04 binaries must stay within jammy's libstdc++)
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          floor=$(objdump -T build/daemon/bonefish | grep -o 'GLIBCXX_[0-9.]*' | sort -Vu | tail -1)
+          echo "highest required GLIBCXX: $floor"
+          if [ "$(printf '%s\n3.4.30\n' "${floor#GLIBCXX_}" | sort -V | tail -1)" != "3.4.30" ]; then
+            echo "::error::binary requires ${floor}, above jammy's libstdc++6 (GLIBCXX_3.4.30)"
+            exit 1
+          fi
+      - name: ABI report (24.04 build is noble-only; noble->jammy loading needs static libstdc++, out of scope per PLATFORM.md)
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          echo "highest required GLIBCXX: $(objdump -T build/daemon/bonefish | grep -o 'GLIBCXX_[0-9.]*' | sort -Vu | tail -1)"
+
+  sanitizers:
+    name: ubuntu-24.04 / ASan+UBSan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y python3-msgpack python3-websockets
+      - name: Configure
+        run: >
+          cmake -S . -B build
+          -DCMAKE_BUILD_TYPE=Release
+          -Dsanitizers=ON
+          -DCMAKE_CXX_FLAGS="-Wno-error=class-memaccess -Wno-error=deprecated-declarations -Wno-error=sign-compare -Wno-error=parentheses -Wno-error=format-truncation -Wno-error=format-overflow -Wno-error=maybe-uninitialized -Wno-error=stringop-overflow -Wno-error=array-bounds -Wno-error=restrict"
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      # The e2e sanitizer_scan case fails the job on any AddressSanitizer,
+      # LeakSanitizer or UBSan "runtime error:" report found in daemon
+      # stderr logs or the embedded example's stderr.
+      - name: Test (sanitizer_scan gate)
+        env:
+          ASAN_OPTIONS: halt_on_error=1:abort_on_error=1:detect_leaks=1
+          UBSAN_OPTIONS: print_stacktrace=1
+        run: ctest --test-dir build --output-on-failure

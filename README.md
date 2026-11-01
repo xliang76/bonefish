@@ -1,7 +1,7 @@
 Bonefish
 ========
 
-[![Build Status](https://travis-ci.org/tplgy/bonefish.png)](https://travis-ci.org/tplgy/bonefish)
+[![CI](https://github.com/xliang76/bonefish/actions/workflows/ci.yml/badge.svg)](https://github.com/xliang76/bonefish/actions/workflows/ci.yml)
 
 Bonefish is an open-source C++ WAMP application router that enables building applications from loosely-coupled components. It currently supports the WAMP Basic Profile and RawSocket Transport as part of the Advanced Profile. Bonefish is capable of hosting multiple routers each with their own realm and associated set of websocket and/or rawsocket endpoints.
 
@@ -15,15 +15,24 @@ See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 You need the following installed:
 
-- A C++11-compatible compiler toolchain (minimum supported versions: clang-3.4, gcc-4.8)
-- CMake
-- Boost. It uses the ASIO, system and thread components.
+- A C++20-compatible compiler toolchain (minimum supported versions: gcc-11, clang-16;
+  gcc-11 is the compiler shipped with Ubuntu 22.04 and is the verified floor)
+- CMake 3.16 or newer
+
+No other system libraries: everything else (standalone Asio, websocketpp,
+msgpack-c, rapidjson, json-msgpack, cppcodec) is vendored as git submodules
+under `third-party/`.
 
 ## Getting the Code
 
 ```
-$ git clone --recursive git@github.com:tplgy/bonefish.git
+$ git clone git@github.com:xliang76/bonefish.git
+$ cd bonefish && git submodule update --init
 ```
+
+Deliberately no `--recursive`: the pinned third-party checkouts carry their
+own nested submodules that are dev-only and not needed to build bonefish
+(see [GIT-OWNERSHIP.md](GIT-OWNERSHIP.md)).
 
 ## Build
 
@@ -39,6 +48,21 @@ $ make install
 ```
 
 If you have the `ninja` build tool available, invoke `cmake` with the `-GNinja` option and then use `ninja` instead of `make`.
+
+No dependency search is needed: all third-party code is vendored under
+`third-party/` and picked up automatically (header-only + standalone Asio).
+
+## Tests
+
+The CTest suite covers unit tests and end-to-end daemon tests:
+
+```
+$ cd bonefish-build && ctest
+```
+
+The end-to-end tests require python3 with the `msgpack` and `websockets`
+modules. Benchmarks (`build/bench/`) are built but not registered as tests;
+see [bench/BASELINE.md](bench/BASELINE.md).
 
 ### Deploy
 
@@ -79,15 +103,19 @@ This will enable debug tracing which is currently sent to the console.
 
 - **shared** - if ON, bonefish will be built as a shared library. OFF implies it will be built as a static library (default).
 - **stdlib** - when building with Clang, you can choose libc++ (default) or libstdc++.
+- **sanitizers** - if ON, builds with AddressSanitizer + UndefinedBehaviorSanitizer (used by the CI sanitizer job).
 
 ## Third Party Libraries
 
-Bonefish relies on the following header-only library projects:
+Bonefish relies on the following library projects, all vendored as git
+submodules under `https://github.com/xliang76/` (header-only usage; no Boost):
 
-- [**json-msgpack**](https://github.com/tplgy/json-msgpack)
-- [**msgpack-c**](https://github.com/msgpack/msgpack-c)
-- [**RapidJSON**](https://github.com/miloyip/rapidjson)
-- [**WebSocket++**](https://github.com/zaphoyd/websocketpp)
+- [**json-msgpack**](https://github.com/xliang76/json-msgpack)
+- [**msgpack-c**](https://github.com/xliang76/msgpack-c)
+- [**RapidJSON**](https://github.com/xliang76/rapidjson)
+- [**cppcodec**](https://github.com/xliang76/cppcodec)
+- [**WebSocket++**](https://github.com/xliang76/websocketpp)
+- [**Asio**](https://github.com/xliang76/asio) (standalone mode, replaces Boost.Asio)
 
 ## License
 

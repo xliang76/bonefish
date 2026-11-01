@@ -21,9 +21,9 @@
 #include <bonefish/trace/trace.hpp>
 
 #include <arpa/inet.h>
-#include <boost/asio/buffer.hpp>
-#include <boost/asio/error.hpp>
-#include <boost/system/error_code.hpp>
+#include <asio/buffer.hpp>
+#include <asio/error.hpp>
+#include <system_error>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -39,7 +39,7 @@ public:
     using fail_handler = std::function<void(const std::shared_ptr<rawsocket_connection>&, const char*)>;
     using message_handler = std::function<void(const std::shared_ptr<rawsocket_connection>&, const char*, size_t)>;
     using handshake_handler = std::function<void(const std::shared_ptr<rawsocket_connection>&, uint32_t)>;
-    using read_handler = std::function<void(const boost::system::error_code&, size_t)>;
+    using read_handler = std::function<void(const std::error_code&, size_t)>;
 
 public:
     rawsocket_connection();
@@ -53,7 +53,7 @@ public:
     virtual void write(
             const void* data,
             size_t length,
-            boost::system::error_code& error_code) = 0;
+            std::error_code& error_code) = 0;
 
     void async_handshake();
     void async_receive();
@@ -73,13 +73,13 @@ public:
 
 private:
     void receive_handshake_handler(
-            const boost::system::error_code& error_code, size_t bytes_transferred);
+            const std::error_code& error_code, size_t bytes_transferred);
     void receive_message_header_handler(
-            const boost::system::error_code& error_code, size_t bytes_transferred);
+            const std::error_code& error_code, size_t bytes_transferred);
     void receive_message_body_handler(
-            const boost::system::error_code& error_code, size_t bytes_transferred);
+            const std::error_code& error_code, size_t bytes_transferred);
 
-    void handle_system_error(const boost::system::error_code& error_code);
+    void handle_system_error(const std::error_code& error_code);
 
 private:
     close_handler m_close_handler;
@@ -114,7 +114,7 @@ inline void rawsocket_connection::async_handshake()
             std::static_pointer_cast<rawsocket_connection>(shared_from_this());
 
     auto handler = [weak_self](
-            const boost::system::error_code& error_code, size_t bytes_transferred) {
+            const std::error_code& error_code, size_t bytes_transferred) {
         auto shared_self = weak_self.lock();
         if (shared_self) {
             shared_self->receive_handshake_handler(error_code, bytes_transferred);
@@ -130,7 +130,7 @@ inline void rawsocket_connection::async_receive()
             std::static_pointer_cast<rawsocket_connection>(shared_from_this());
 
     auto handler = [weak_self](
-            const boost::system::error_code& error_code, size_t bytes_transferred) {
+            const std::error_code& error_code, size_t bytes_transferred) {
         auto shared_self = weak_self.lock();
         if (shared_self) {
             shared_self->receive_message_header_handler(error_code, bytes_transferred);
@@ -146,7 +146,7 @@ inline void rawsocket_connection::async_receive()
 
 inline bool rawsocket_connection::send_handshake(uint32_t capabilities)
 {
-    boost::system::error_code error_code;
+    std::error_code error_code;
     write(&capabilities, sizeof(capabilities), error_code);
 
     if (error_code) {
@@ -159,7 +159,7 @@ inline bool rawsocket_connection::send_handshake(uint32_t capabilities)
 
 inline bool rawsocket_connection::send_message(const char* message, size_t length)
 {
-    boost::system::error_code error_code;
+    std::error_code error_code;
 
     // First write the message length prefix.
     uint32_t length_prefix = htonl(length);
@@ -228,7 +228,7 @@ inline void rawsocket_connection::set_handshake_handler(
 }
 
 inline void rawsocket_connection::receive_handshake_handler(
-        const boost::system::error_code& error_code, size_t bytes_transferred)
+        const std::error_code& error_code, size_t bytes_transferred)
 {
     if (error_code) {
         handle_system_error(error_code);
@@ -241,7 +241,7 @@ inline void rawsocket_connection::receive_handshake_handler(
 }
 
 inline void rawsocket_connection::receive_message_header_handler(
-        const boost::system::error_code& error_code, size_t bytes_transferred)
+        const std::error_code& error_code, size_t bytes_transferred)
 {
     if (error_code) {
         handle_system_error(error_code);
@@ -268,7 +268,7 @@ inline void rawsocket_connection::receive_message_header_handler(
             std::static_pointer_cast<rawsocket_connection>(shared_from_this());
 
     auto handler = [weak_self](
-            const boost::system::error_code& error_code, size_t bytes_transferred) {
+            const std::error_code& error_code, size_t bytes_transferred) {
         auto shared_self = weak_self.lock();
         if (shared_self) {
             shared_self->receive_message_body_handler(error_code, bytes_transferred);
@@ -279,7 +279,7 @@ inline void rawsocket_connection::receive_message_header_handler(
 }
 
 inline void rawsocket_connection::receive_message_body_handler(
-        const boost::system::error_code& error_code, size_t bytes_transferred)
+        const std::error_code& error_code, size_t bytes_transferred)
 {
     if (error_code) {
         handle_system_error(error_code);
@@ -293,16 +293,16 @@ inline void rawsocket_connection::receive_message_body_handler(
     async_receive();
 }
 
-inline void rawsocket_connection::handle_system_error(const boost::system::error_code& error_code)
+inline void rawsocket_connection::handle_system_error(const std::error_code& error_code)
 {
     // NOTE: The boost documentation does not indicate what all of the possible error
     //       codes are that can occur for the async receive handlers. So it will be an
     //       ongoing exercise in trying to figure this out.
-    if (error_code == boost::asio::error::eof) {
+    if (error_code == asio::error::eof) {
         BONEFISH_TRACE("connection closed: %1%", error_code);
         const auto& close_handler = get_close_handler();
         close_handler(shared_from_this());
-    } else if (error_code != boost::asio::error::operation_aborted) {
+    } else if (error_code != asio::error::operation_aborted) {
         BONEFISH_TRACE("connection failed: %1%", error_code);
         const auto& fail_handler = get_fail_handler();
         fail_handler(shared_from_this(), error_code.message().c_str());
