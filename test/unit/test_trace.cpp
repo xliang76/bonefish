@@ -98,16 +98,16 @@ void trace_noargs_format_impl()
 
 void trace_chained_args_format_impl()
 {
-    // This is the pattern every multi-value BONEFISH_TRACE call site in the
-    // codebase uses: ONE macro argument chained with operator% (see
-    // wamp_router_impl.cpp). Note the baseline macro has a comma-operator
-    // quirk when three or more macro arguments are passed (it prints only
-    // the last one), but no production call site does that, so only the
-    // chained pattern is locked here. The std-only port must keep this
-    // output byte-identical.
+    // The multi-value BONEFISH_TRACE pattern after the std-only port: one
+    // argument per %N% placeholder (the baseline's boost::format operator%
+    // chaining syntax was replaced at every call site; the emitted bytes
+    // must be identical). This also locks the fixed behavior of the
+    // 3-macro-argument case, which under the baseline BOOST_PP macro hit a
+    // comma-operator quirk (wamp_dealer.cpp printed only the trailing
+    // value); the variadic-template port formats all arguments.
     set_enabled(true);
     cerr_capture capture;
-    BONEFISH_TRACE("%1%, %2%", std::string("left") % std::string("right"));
+    BONEFISH_TRACE("%1%, %2%", std::string("left"), std::string("right"));
     BF_ASSERT_TRUE(matches(line_for(capture.str()),
                 "trace_chained_args_format_impl", "left, right"));
     set_enabled(false);
@@ -116,12 +116,12 @@ void trace_chained_args_format_impl()
 void trace_two_placeholder_single_arg_impl()
 {
     // "sending message: %1%:%2%" style (websocket_server.cpp): two
-    // placeholders filled from one chained argument.
+    // placeholders filled from two arguments, including an unsigned short.
     set_enabled(true);
     cerr_capture capture;
     std::string ip = "127.0.0.1";
     unsigned short port = 9999;
-    BONEFISH_TRACE("starting websocket server: %1%:%2%", ip % port);
+    BONEFISH_TRACE("starting websocket server: %1%:%2%", ip, port);
     BF_ASSERT_TRUE(matches(line_for(capture.str()),
                 "trace_two_placeholder_single_arg_impl",
                 "starting websocket server: 127\\.0\\.0\\.1:9999"));

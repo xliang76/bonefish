@@ -51,7 +51,7 @@ websocket_server_impl::~websocket_server_impl()
 
 void websocket_server_impl::start(const boost::asio::ip::address& ip_address, uint16_t port)
 {
-    BONEFISH_TRACE("starting websocket server: %1%:%2%", ip_address.to_string() % port);
+    BONEFISH_TRACE("starting websocket server: %1%:%2%", ip_address.to_string(), port);
 
     boost::asio::ip::tcp::endpoint endpoint(ip_address, port);
 

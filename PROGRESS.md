@@ -126,10 +126,18 @@ See PLATFORM.md for the matrix and methods.
 
 ## Risks / watch items
 
+- **Pre-existing baseline defect (found 2026-11-01 during 2c'):** running the
+  daemon with `--debug` while RawSocket clients stream messages stalls the
+  RawSocket acceptor after the initial connections (reproduced byte-identical
+  on the untouched baseline daemon and the ported tree, so it is a 2015-era
+  bug, not a port regression). The e2e suite never hits it (it enables
+  `--debug` only for CLI-behavior cases, not for traffic). Out of scope for
+  the Boost removal; revisit as a standalone daemon fix afterward.
 - websocketpp pin bump is the riskiest dependency move: WebSocket handshake +
-  subprotocol negotiation must be fully e2e-covered before merging 2g.
-- `std::regex` regression (mitigated by 2e) and `<format>` absence on 22.04
-  (mitigated by 2d note) are the two portability traps already identified.
+  subprotocol negotiation must be fully e2e-covered before merging 2f'.
+- `std::regex` regression (mitigated by 2d') and `<format>` absence on 22.04
+  (mitigated by the std-only formatter in 2c') are the two portability traps
+  already identified.
 - This container has no docker/podman and no root: native 22.04 proof leans on
   GitHub Actions runners or the deb-extraction toolchain recipe.
 - GitHub forks keep a "forked from" link to the parent repo (cosmetic +
