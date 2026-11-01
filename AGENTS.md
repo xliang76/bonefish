@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Bonefish: a C++11 WAMP router (library + standalone daemon). Legacy codebase (2015,
-`cmake_minimum_required(VERSION 2.8)`); most modern-toolchain friction comes from that.
+Bonefish: a C++17 WAMP router (library + standalone daemon), zero Boost — the
+platform layer is standalone Asio + STL (2026-11 upgrade program; it began as a
+2015 C++11/Boost codebase, modernized through P0–P4, see PROGRESS.md).
 
 ## Layout
 
@@ -11,7 +12,8 @@ Bonefish: a C++11 WAMP router (library + standalone daemon). Legacy codebase (20
   (so `make bonefish` builds the *library*; the daemon binary lands at `build/daemon/bonefish`).
 - `examples/integration.cpp` → embedded-library usage example.
 - `third-party/` → git submodules (header-only: msgpack-c, rapidjson,
-  json-msgpack, cppcodec, websocketpp v0.7.0), wired via `include_directories` in the
+  json-msgpack, cppcodec, websocketpp 0.8.2; plus standalone Asio 1.30.2),
+  wired via `include_directories` in the
   root `CMakeLists.txt`. Run `git submodule update --init` (deliberately NOT
   `--recursive`: nested submodules inside the third-party pins are their own
   dev-only trees on non-xliang76 URLs; see GIT-OWNERSHIP.md) before configuring.
@@ -20,26 +22,28 @@ Bonefish: a C++11 WAMP router (library + standalone daemon). Legacy codebase (20
 
 ## Build (verified on this machine)
 
-The system has no `cmake` on PATH and no Boost with Boost.ASIO (modern Boost removed
-it; this code requires it). A working toolchain set lives in `/tmp/opencode` (re-create
-if wiped): CMake **3.22.6** and prebuilt Boost **1.65.1**. CMake ≥ 3.30/4.x breaks this
-project (`cmake_minimum_required(VERSION 2.8)` rejected, `FindBoost` module removed).
+The build needs no system dependencies beyond a C++17 compiler (Boost is fully
+gone since P2). This machine has no `cmake` on PATH; the working toolchain set
+lives in `/tmp/opencode` (re-create if wiped): CMake **3.22.6**. CMake >= 3.16
+works now (`cmake_minimum_required(VERSION 3.16)` since P1). The jammy
+(g++-11) cross-toolchain lives at `build/scratch/jammy/sysroot` (PLATFORM.md
+recipe).
 
 ```sh
 export CMAKE=/tmp/opencode/cmake-3.22.6-linux-x86_64/bin/cmake
 mkdir -p build && cd build
-$CMAKE -DBOOST_ROOT=/tmp/opencode/boost \
-       -DCMAKE_CXX_FLAGS="$(cat /tmp/opencode/BASELINE_FLAGS.txt)" ..
+$CMAKE -DCMAKE_CXX_FLAGS="$(cat /tmp/opencode/BASELINE_FLAGS.txt)" ..
 make -j
 ```
 
-- Required Boost components: `program_options system thread` (+ `regex` only on GCC < 4.9).
 - `-Wall -Werror` is set in the root `CMakeLists.txt`: warnings in project code fail the
-  build. Under GCC 13 the legacy Boost 1.65/msgpack/websocketpp headers warn, so the
-  baseline needs the targeted `-Wno-error=<...>` suppressions kept in
+  build. Under GCC 13 the vendored msgpack/websocketpp/Asio headers warn, so
+  local builds pass the targeted `-Wno-error=<...>` suppressions kept in
   `/tmp/opencode/BASELINE_FLAGS.txt` (recreate if wiped; they only demote warnings
-  coming from third-party headers).
-- Options: `-Dshared=ON` (shared lib; default static), `-Dstdlib=libstdc++` (clang only).
+  coming from third-party headers; CI passes the same list via `-DCMAKE_CXX_FLAGS`).
+- Options: `-Dshared=ON` (shared lib; default static), `-Dstdlib=libstdc++` (clang only),
+  `-Dsanitizers=ON` (ASan+UBSan; lowercase matters - CMake `option()` names are
+  case-sensitive and the uppercase spelling is silently ignored).
 
 ## Tests
 
@@ -50,8 +54,8 @@ CTest suite (P0 guardrail harness): `ctest --test-dir build` runs the unit suite
 Benchmarks are built (`build/bench/`) but not registered as tests; see `bench/BASELINE.md`.
 
 - `test/functional/websocket/client.cpp` builds binary `client` (websocketpp test client).
-- `test/smoke/` → manual Python smoke tests (publisher/subscriber/caller/callee) driving a
-  live daemon; old `autobahn`/`twisted` APIs (`six`-era). Superseded by `test/e2e/` (P5 retires it).
+- `test/smoke/` was retired in P5 (autobahn/`six`-era manual scripts, superseded
+  by `test/e2e/`).
 
 ## Running
 
@@ -74,10 +78,12 @@ build/daemon/bonefish --realm default --websocket-port 9999 --rawsocket-port 888
 ## Upgrade program (2026-11)
 
 Root-level docs `PROGRESS.md` (tracker), `ARCHITECTURE.md`, `GIT-OWNERSHIP.md`,
-`PLATFORM.md`, `BOOST-REMOVAL.md` define the current program: xliang76-only
+`PLATFORM.md`, `BOOST-REMOVAL.md` define the program: xliang76-only
 remotes/submodules, Ubuntu 22.04/24.04 support, and Boost -> STL replacement
-with functional/performance parity gates. Check `PROGRESS.md` before starting
-related work.
+with functional/performance parity gates. P0-P4 + the local side of P3 are
+complete (see PROGRESS.md status log); P5 remains blocked only on owner
+approvals (push for CI, merge/tag, websocketpp C++20 patch). Check
+`PROGRESS.md` before starting related work.
 
 ## Environment quirks
 

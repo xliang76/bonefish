@@ -49,8 +49,8 @@ $ make install
 
 If you have the `ninja` build tool available, invoke `cmake` with the `-GNinja` option and then use `ninja` instead of `make`.
 
-Point CMake at your Boost installation with `-DBOOST_ROOT=<path>` if it is
-not installed in a default location.
+No dependency search is needed: all third-party code is vendored under
+`third-party/` and picked up automatically (header-only + standalone Asio).
 
 ## Tests
 
@@ -107,12 +107,15 @@ This will enable debug tracing which is currently sent to the console.
 
 ## Third Party Libraries
 
-Bonefish relies on the following header-only library projects:
+Bonefish relies on the following library projects, all vendored as git
+submodules under `https://github.com/xliang76/` (header-only usage; no Boost):
 
 - [**json-msgpack**](https://github.com/xliang76/json-msgpack)
 - [**msgpack-c**](https://github.com/xliang76/msgpack-c)
 - [**RapidJSON**](https://github.com/xliang76/rapidjson)
+- [**cppcodec**](https://github.com/xliang76/cppcodec)
 - [**WebSocket++**](https://github.com/xliang76/websocketpp)
+- [**Asio**](https://github.com/xliang76/asio) (standalone mode, replaces Boost.Asio)
 
 ## License
 

@@ -10,6 +10,11 @@ behind three transports, usable as a standalone daemon or an embedded library.
 
 ## Current architecture (as-is)
 
+> **Status 2026-11-01:** this section describes the P0 starting point and is
+> kept as history; the to-be section below is now the shipped architecture
+> (only the C++20 line is deferred - websocketpp 0.8.2 template-id ctor/dtor
+> headers, see BOOST-REMOVAL.md 2g').
+
 ```
  daemon/bonefish.cpp  ----------+
  examples/integration.cpp ------+--> libbonefish (src/bonefish/)

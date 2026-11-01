@@ -82,6 +82,15 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   512 KiB payload +0.1%/-0.9%, uri validator 13-19 ns/op vs 478-605
   (30-45x, is_valid_uri clause cleared massively). Results in
   `bench/RESULTS.md`; P3 committed as `338ac8f`.
+- 2026-11-01: **P5 docs/finalize executed (local side).** README: CI
+  badge, dependency + third-party lists corrected (zero-Boost, asio and
+  cppcodec listed under xliang76), `sanitizers` documented. `test/smoke/`
+  retired via git rm (superseded by the e2e harness; nothing referenced it).
+  AGENTS.md refreshed to the post-P2 reality (C++17, no BOOST_ROOT recipe,
+  option case-sensitivity pitfall). ARCHITECTURE.md as-is section marked as
+  P0-era history. All phases P0-P5 now complete EXCEPT the three
+  owner-approval items: push (activates CI + badge), merge/tag decision,
+  websocketpp C++20 patch upstreaming.
 
 ## Phase P0 - Guardrails first (no code change)
 
@@ -211,9 +220,19 @@ See PLATFORM.md for the matrix and methods.
 
 ## Phase P5 - Finalize
 
-- [ ] Docs: README badges/commands, AGENTS.md refresh, stale `test/smoke/*.py`
-      replaced or removed (superseded by e2e harness).
-- [ ] Merge working branch to `master` (owner decision: PR vs direct), tag.
+- [x] Docs (2026-11-01): README - CI badge added (badge goes live with the
+      first pushed Actions run), Boost dependency lines removed, build note
+      corrected, `sanitizers` option documented, third-party list completed
+      (cppcodec + asio added); `test/smoke/` retired (git rm - the
+      autobahn/`six`-era scripts, superseded by `test/e2e/`; no build/test
+      references existed); AGENTS.md refreshed (C++17/zero-Boost header, new
+      build recipe without BOOST_ROOT, sanitizers option + case-sensitivity
+      pitfall, smoke retirement); ARCHITECTURE.md as-is section marked as
+      P0-era history with the shipped-architecture status note.
+- [ ] BLOCKED on owner: merge working branch to `master` (PR vs direct
+      decision) + tag; also the push that turns CI + the README badge green
+      (all workflow logic already validated locally, see P3) and the
+      websocketpp C++20 patch push (BOOST-REMOVAL.md 2g').
 
 ## Risks / watch items
 
