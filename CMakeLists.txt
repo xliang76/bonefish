@@ -1,5 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
-project(bonefish)
+cmake_minimum_required(VERSION 3.16)
+project(bonefish VERSION 0.1.0 LANGUAGES CXX)
+
+# C++17 is what the legacy Boost 1.65 / websocketpp 0.7 headers compile
+# cleanly against (verified on GCC 13). Bump to 20 in P2h once boost::format
+# and the old websocketpp pin are gone (both hard-break -std=c++20).
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(shared "build bonefish as a shared library" OFF)
 option(stdlib "When building with clang, you can choose libc++ (default) or libstdc++" OFF)
@@ -25,20 +32,15 @@ else()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "4.9.0") # i.e. if < 4.9.0
-        list(APPEND BOOST_COMPONENTS regex)
-    add_definitions(-DUSE_BOOST_REGEX)
-    else() # >= 4.9.0
-        if (CMAKE_GENERATOR STREQUAL "Ninja")
-            set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always ${CMAKE_CXX_FLAGS}")
-        else()
-            set(CMAKE_CXX_FLAGS "-fdiagnostics-color=auto ${CMAKE_CXX_FLAGS}")
-        endif()
+    if (CMAKE_GENERATOR STREQUAL "Ninja")
+        set(CMAKE_CXX_FLAGS "-fdiagnostics-color=always ${CMAKE_CXX_FLAGS}")
+    else()
+        set(CMAKE_CXX_FLAGS "-fdiagnostics-color=auto ${CMAKE_CXX_FLAGS}")
     endif()
 endif()
 
 if(NOT MSVC)
-    set(CMAKE_CXX_FLAGS "-Wall -Werror -Wno-unused-variable -std=c++11 ${CMAKE_CXX_FLAGS}")
+    set(CMAKE_CXX_FLAGS "-Wall -Werror -Wno-unused-variable ${CMAKE_CXX_FLAGS}")
 else()
     add_definitions(-D_WEBSOCKETPP_CPP11_CHRONO_)
 endif()

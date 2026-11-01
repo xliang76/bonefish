@@ -21,11 +21,21 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   recorded in `bench/BASELINE.md`. New tooling notes: the CMake build needs
   `-DPython3_EXECUTABLE=<python with msgpack+websockets>` for the e2e test
   and warning suppressions for legacy headers (AGENTS.md build snippet).
+- 2026-11-01: **P1 complete** (see P1 checklist for details). `.gitmodules`
+  now xliang76-only (pins fetch-proven, fresh clone verified non-recursive);
+  root CMakeLists modernized (3.16 / VERSION / C++17 / dead branches removed;
+  C++20 deferred to P2h because boost::format + websocketpp 0.7 hard-break
+  C++20); `.travis.yml` deleted; README rewritten to current state. Full
+  ctest green on the modernized build (`/tmp/opencode/p1-build`).
+  `BASELINE_FLAGS.txt` rewritten to raw flags so the AGENTS.md
+  `$(cat ...)` recipe works.
 
 ## Phase P0 - Guardrails first (no code change)
 
-- [ ] Fresh recursive clone resolves ONLY from `github.com/xliang76/*`
-      (requires the .gitmodules rewrite from P1a first; re-verify after).
+- [ ] Fresh clone + `git submodule update --init` resolves ONLY from
+      `github.com/xliang76/*` on the pushed branch (pins verified reachable on
+      the forks locally; full check needs the P1 commits pushed, and the
+      nested-submodule caveat in GIT-OWNERSHIP.md resolved).
 - [x] Baseline build green on this host (Ubuntu 24.04, g++ 13) using the
       pre-Boost-1.65.1 baseline documented in AGENTS.md.
 - [x] Unit tests (new, CTest): message wire formats (codes + field order +
@@ -43,16 +53,25 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
 
 ## Phase P1 - Ownership + build modernization
 
-- [ ] P1a: `.gitmodules` URLs -> `https://github.com/xliang76/<name>.git` for
-      all five submodules. Verify: `git submodule sync && git submodule
-      update --init --recursive` works offline-of-upstream (block upstream
-      domains with a hosts-file entry during the check).
-- [ ] CMake: `cmake_minimum_required(3.16)`, project VERSION,
-      `CMAKE_CXX_STANDARD 20`, `CXX_EXTENSIONS OFF`, keep `-Wall -Werror`
-      (drop flags no compiler accepts), `enable_testing()`, add `test/unit`.
-      Verify: builds on g++-13 with same binaries' behavior.
-- [ ] Delete `.travis.yml` (dead service), replace README badge + build section,
-      README clone/dependency text matches new state.
+- [x] P1a: `.gitmodules` URLs -> `https://github.com/xliang76/<name>.git` for
+      all five submodules. Verify: pins fetch from the forks and a fresh
+      clone + `git submodule update --init` (non-recursive, see the nested
+      caveat in GIT-OWNERSHIP.md) resolves xliang76-only. DONE 2026-11-01.
+- [x] CMake: `cmake_minimum_required(3.16)`, `project(bonefish VERSION 0.1.0
+      LANGUAGES CXX)`, `CMAKE_CXX_STANDARD 17` + `CXX_EXTENSIONS OFF`, keep
+      `-Wall -Werror`, drop the GCC<4.9/`USE_BOOST_REGEX` branch and
+      `-std=c++11`. `enable_testing()` + `test/unit` landed with P0.
+      **Deviation:** C++20 is NOT set here because the baseline tree's
+      boost::format and websocketpp 0.7 headers hard-break under `-std=c++20`
+      (verified: `allocator::allocate(n,hint)` removal; template-id
+      constructor in `logger/basic.hpp`). C++17 compiles clean; bump to 20
+      in P2h when those dependencies are gone.
+      Verify DONE: fresh configure + full build on g++-13 (`-std=c++17`
+      confirmed in flags.make), all 4 ctest cases green incl. e2e. DONE 2026-11-01.
+- [x] Delete `.travis.yml` (dead service), replace README badge + build section,
+      README clone/dependency text matches new state (xliang76 URLs, C++17
+      toolchain, CMake 3.16, non-recursive submodule init, ctest section).
+      DONE 2026-11-01. A GitHub Actions badge returns with P3.
 
 ## Phase P2 - Boost -> STL port (each step keeps ctest green)
 

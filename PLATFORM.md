@@ -11,7 +11,9 @@
 | system Boost (UNUSED after P2) | 1.74 | 1.83 |
 | Python test deps | python3-msgpack, python3-websockets | same |
 
-C++20 + CMake >= 3.16 is the ported baseline: covered by GCC 11 (jammy) and up.
+C++17 is the current standard (set in P1); the bump to C++20 happens in P2h
+once boost::format and the websocketpp 0.7 pin are gone (both hard-break
+`-std=c++20`). CMake >= 3.16 throughout: covered by GCC 11 (jammy) and up.
 Do NOT use `std::format`, `std::span`-dependent or concepts features that GCC 11
 lacks without checking - jammy libstdc++ 11 has no `<format>`.
 

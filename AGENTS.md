@@ -12,8 +12,10 @@ Bonefish: a C++11 WAMP router (library + standalone daemon). Legacy codebase (20
 - `examples/integration.cpp` → embedded-library usage example.
 - `third-party/` → git submodules (header-only: msgpack-c, rapidjson,
   json-msgpack, cppcodec, websocketpp v0.7.0), wired via `include_directories` in the
-  root `CMakeLists.txt`. Run `git submodule update --init --recursive` before
-  configuring. A `+ third-party/...` line in `git status` means a submodule pointer
+  root `CMakeLists.txt`. Run `git submodule update --init` (deliberately NOT
+  `--recursive`: nested submodules inside the third-party pins are their own
+  dev-only trees on non-xliang76 URLs; see GIT-OWNERSHIP.md) before configuring.
+  A `+ third-party/...` line in `git status` means a submodule pointer
   drifted — restore with `git submodule update`, don't commit it.
 
 ## Build (verified on this machine)
