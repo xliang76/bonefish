@@ -27,14 +27,14 @@
 #include <bonefish/websocket/websocket_protocol.hpp>
 #include <bonefish/websocket/websocket_transport.hpp>
 
-#include <boost/asio/io_service.hpp>
+#include <asio/io_context.hpp>
 #include <websocketpp/common/connection_hdl.hpp>
 #include <websocketpp/utilities.hpp>
 
 namespace bonefish {
 
 websocket_server_impl::websocket_server_impl(
-        boost::asio::io_service& io_service,
+        asio::io_context& io_service,
         const std::shared_ptr<wamp_routers>& routers,
         const std::shared_ptr<wamp_serializers>& serializers)
     : m_io_service(io_service)
@@ -49,23 +49,27 @@ websocket_server_impl::~websocket_server_impl()
 {
 }
 
-void websocket_server_impl::start(const boost::asio::ip::address& ip_address, uint16_t port)
+void websocket_server_impl::start(const asio::ip::address& ip_address, uint16_t port)
 {
     BONEFISH_TRACE("starting websocket server: %1%:%2%", ip_address.to_string(), port);
 
-    boost::asio::ip::tcp::endpoint endpoint(ip_address, port);
+    asio::ip::tcp::endpoint endpoint(ip_address, port);
 
     std::weak_ptr<websocket_server_impl> weak_self = shared_from_this();
 
-    auto init_handler = [weak_self](
-            websocketpp::connection_hdl handle,
-            boost::asio::ip::tcp::socket& socket) {
+    // The boost::program_options-era websocketpp 0.7 fired socket_init
+    // handlers on a constructed (fd-bearing) socket, but the 0.8.2 pin fires
+    // it before Asio's accept opens the socket, and modern Asio (>=1.24)
+    // creates the native socket lazily, so set_option() there fails with
+    // EBADF. TCP post-init fires once the accepted socket is open (matching
+    // when rawsocket connections set no_delay), before any handshake bytes.
+    auto post_init_handler = [weak_self](websocketpp::connection_hdl handle) {
         auto shared_self = weak_self.lock();
         if (shared_self) {
-            shared_self->on_socket_init(handle, socket);
+            shared_self->on_socket_post_init(handle);
         }
     };
-    m_server->set_socket_init_handler(init_handler);
+    m_server->set_tcp_post_init_handler(post_init_handler);
 
     auto open_handler = [weak_self](websocketpp::connection_hdl handle) {
         auto shared_self = weak_self.lock();
@@ -131,10 +135,12 @@ void websocket_server_impl::shutdown()
     m_server->stop_listening();
 }
 
-void websocket_server_impl::on_socket_init(websocketpp::connection_hdl handle,
-        boost::asio::ip::tcp::socket& s)
+void websocket_server_impl::on_socket_post_init(websocketpp::connection_hdl handle)
 {
-    s.set_option(boost::asio::ip::tcp::no_delay(true));
+    websocketpp::server<websocket_config>::connection_ptr connection =
+            m_server->get_con_from_hdl(handle);
+    // Disable Nagle algorithm to get lower latency (and lower throughput).
+    connection->get_socket().set_option(asio::ip::tcp::no_delay(true));
 }
 
 void websocket_server_impl::on_open(websocketpp::connection_hdl handle)

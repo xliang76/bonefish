@@ -5,8 +5,7 @@
 - `origin` of this repo: `https://github.com/xliang76/bonefish.git` - DONE.
 - Repos verified reachable (HTTP 200) under xliang76: `bonefish`, `msgpack-c`,
   `rapidjson`, `websocketpp`, `json-msgpack`, `cppcodec`, `asio`.
-- `.gitmodules` on this branch STILL points at upstream orgs - the only real
-  remaining work for goal 1.
+- `.gitmodules` on this branch: xliang76-only since P1a (rewritten 2026-11-01).
 
 ## Submodule ownership table
 
@@ -14,10 +13,10 @@
 |---|---|---|---|
 | third-party/msgpack-c | github.com/msgpack/msgpack-c | github.com/xliang76/msgpack-c | `e59f6e67` (cpp-1.3.0-54) |
 | third-party/rapidjson | github.com/miloyip/rapidjson | github.com/xliang76/rapidjson | `f54b0e47` (v1.1.0) |
-| third-party/websocketpp | github.com/zaphoyd/websocketpp | github.com/xliang76/websocketpp | `378437ae` (0.7.0; will be re-pinned in P2g) |
+| third-party/websocketpp | github.com/zaphoyd/websocketpp | github.com/xliang76/websocketpp | `1b11fd30` (0.8.2-1 = v0.8.2 release + FUNDING.yml; re-pinned in P2f' for `ASIO_STANDALONE` support; old 0.7.0 pin `378437ae` is a direct ancestor) |
 | third-party/json-msgpack | github.com/tplgy/json-msgpack | github.com/xliang76/json-msgpack | `55a6d772` |
 | third-party/cppcodec | github.com/tplgy/cppcodec | github.com/xliang76/cppcodec | `61d9b044` |
-| third-party/asio (added in P2g) | github.com/chriskohlmann/asio | github.com/xliang76/asio | pin an asio 1.30.x tag |
+| third-party/asio (added in P2f') | github.com/chriskohlmann/asio | github.com/xliang76/asio | `12e0ce9e` (tag `asio-1-30-2`) |
 
 ## Steps
 

@@ -65,12 +65,18 @@ if(WIN32)
     add_definitions(-DWIN32_LEAN_AND_MEAN)
 endif()
 
+# Vendored standalone Asio (third-party/asio) replaces Boost.Asio
+# (BOOST-REMOVAL.md step 2f'); ASIO_STANDALONE also switches websocketpp
+# (>=0.8.0) onto the same Asio + std::error_code.
+add_definitions(-DASIO_STANDALONE)
+
 find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 find_package(RT)
 find_package(Threads)
 
 include_directories(
     ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/third-party/asio/asio/include
     ${CMAKE_SOURCE_DIR}/third-party/cppcodec
     ${CMAKE_SOURCE_DIR}/third-party/json-msgpack/include
     ${CMAKE_SOURCE_DIR}/third-party/msgpack-c/include

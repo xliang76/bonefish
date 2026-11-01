@@ -39,7 +39,7 @@
 
 namespace bonefish {
 
-wamp_dealer::wamp_dealer(boost::asio::io_service& io_service)
+wamp_dealer::wamp_dealer(asio::io_context& io_service)
     : m_io_service(io_service)
     , m_request_id_generator()
     , m_registration_id_generator()
@@ -497,9 +497,9 @@ void wamp_dealer::send_error(const std::unique_ptr<wamp_transport>& transport,
 }
 
 void wamp_dealer::invocation_timeout_handler(const wamp_request_id& request_id,
-        const boost::system::error_code& error)
+        const std::error_code& error)
 {
-    if (error == boost::asio::error::operation_aborted) {
+    if (error == asio::error::operation_aborted) {
         return;
     }
 

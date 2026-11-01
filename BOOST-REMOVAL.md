@@ -37,12 +37,12 @@ construction. Revised order, each step keeps ctest green:
 - [x] 2c': `trace.hpp`: BOOST_PP varargs -> variadic templates,
       `boost::format` -> std-only formatter; keep `%N%` semantics
       (`test/unit/test_trace.cpp` gates).
-- [ ] 2d': `wamp_uri`: `boost::regex` -> hand-rolled char-class validator
+- [x] 2d': `wamp_uri`: `boost::regex` -> hand-rolled char-class validator
       (parity table in `test/unit/test_wamp_uri.cpp` gates;
       `bench/uri_bench` must not regress).
 - [x] 2e': daemon CLI: `boost::program_options` -> hand-rolled parser
       (e2e CLI matrix gates).
-- [ ] 2f' (big): networking step, absorbing old 2a + 2b-timer: add
+- [x] 2f' (big): networking step, absorbing old 2a + 2b-timer: add
       `third-party/asio` submodule (xliang76/asio, pin 1.30.x), re-pin
       websocketpp to a standalone-Asio-capable commit, then ALL Asio
       boundaries at once: `boost/asio/*` -> `asio/*`, `io_service` ->

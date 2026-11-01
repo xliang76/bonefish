@@ -29,6 +29,18 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   ctest green on the modernized build (`/tmp/opencode/p1-build`).
   `BASELINE_FLAGS.txt` rewritten to raw flags so the AGENTS.md
   `$(cat ...)` recipe works.
+- 2026-11-01: **P2 steps 2a'-2f' complete** (commits `316113c` `45222ac`
+  `8b99f1b` `ee5a36d` `df417d6` + CLI/networking commits). The tree now
+  builds and tests fully green against vendored standalone Asio
+  (`third-party/asio`, xliang76/asio @ `asio-1-30-2`, new submodule) with
+  websocketpp re-pinned 0.7.0 -> 0.8.2 (xliang76 fork master `1b11fd3`,
+  first fork commit with `ASIO_STANDALONE` support; the old pin is a direct
+  ancestor). Zero non-comment `boost` references remain in src/daemon/
+  examples/test/bench. Same-session A/B benchmark: pubsub 197k vs 183k
+  msg/s (faster, +7% - outside the +/-5% band in the good direction,
+  noted for P4), rpc p50 30.6 vs 31.7 us and 512KiB payload 815 vs 808
+  MB/s within gate. Remaining: 2g' (drop find_package(Boost), C++20 bump,
+  binary-level Boost audit).
 
 ## Phase P0 - Guardrails first (no code change)
 
@@ -75,28 +87,35 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
 
 ## Phase P2 - Boost -> STL port (each step keeps ctest green)
 
-Ordered so the build never needs Boost and legacy at the same time except 2a.
+Order revised before P2 started - see `BOOST-REMOVAL.md` "Ordered steps
+(revised)" for the authoritative checklist and rationale (Boost 1.65 pins
+`boost::system::error_code` apart from `std::error_code`, so the EC rename
+and timer fix folded into the networking step 2f').
 
-- [ ] 2a: `boost::system::error_code` -> `std::error_code` (28 uses, 7 headers).
-- [ ] 2b: `boost::bind` -> lambdas; `boost::posix_time` -> `std::chrono`.
-- [ ] 2c: `boost::future/promise/copy_exception` -> `std::` equivalents in
-      `native/` (no `.then`/`when_all` in tree - verified by grep).
-- [ ] 2d: `trace.hpp`: BOOST_PP varargs -> variadic templates; `boost::format`
-      -> small std-only formatter. NOTE: GCC 11 (22.04) libstdc++ has no
-      `<format>`; do not use `std::format`.
-- [ ] 2e: `wamp_uri`: replace `boost::regex` with hand-written validator
-      (4 patterns; keep exact accept/reject table from P0 unit tests).
-- [ ] 2f: daemon CLI: `boost::program_options` -> hand-rolled parser, same
-      flags/defaults/exit codes (P0 e2e CLI cases are the gate).
-- [ ] 2g: networking: Boost.Asio -> standalone Asio.
-      - Add `third-party/asio` submodule (xliang76/asio fork, pin a 1.30.x tag).
-      - Bump `third-party/websocketpp` to a standalone-Asio-capable pin.
-      - `io_service`->`io_context`, `deadline_timer`->`steady_timer`,
-        `ASIO_STANDALONE`, includes `boost/asio/*` -> `asio/*`.
-- [ ] 2h: remove `find_package(Boost)`, BOOST_COMPONENTS, USE_BOOST_REGEX.
-      Verify (final Boost audit): `grep -rn boost src daemon examples test`
-      empty; `nm -C libbonefish.a | grep -ci boost` = 0; `ldd` daemon has no
-      boost libs.
+- [x] 2a' `boost::bind` -> lambdas (daemon). DONE (`316113c`).
+- [x] 2b' boost futures/promise -> `std::future`/`std::promise` (native/).
+      DONE (`45222ac`; public typedef change - breaking-change notice).
+- [x] 2c' trace: variadic-template std formatter replaces boost::format +
+      BOOST_PP; all chained call sites rewritten. DONE (`8b99f1b`).
+- [x] 2d' wamp_uri: hand-rolled char-class validator replaces regex
+      (parity table green, ~40x faster). DONE (`df417d6`).
+- [x] 2e' daemon CLI: hand-rolled parser replaces program_options
+      (A/B parity across 19 shapes). DONE.
+- [x] 2f' networking: vendored standalone Asio (`third-party/asio`,
+      xliang76/asio @ asio-1-30-2) + websocketpp re-pinned 0.7 -> 0.8.2
+      (fork master `1b11fd3`); `boost/asio/*`->`asio/*`, `io_service`->
+      `io_context`, `deadline_timer`->`steady_timer` + `expires_after`
+      (monotonic-clock fix), EC -> `std::error_code` everywhere,
+      `ASIO_STANDALONE`. WS `no_delay` moved to the post-accept hook
+      (0.8.2 fires socket-init before the socket opens under modern
+      Asio's lazy fd creation; EBADF otherwise). Full ctest green;
+      same-session A/B bench: pubsub +7% faster, rpc p50 and large
+      payload within gate. DONE.
+- [ ] 2g' (= old 2h): remove `find_package(Boost)`, BOOST_COMPONENTS,
+      leftover `${Boost_LIBRARIES}` links; C++20 bump now that boost::format
+      and websocketpp 0.7 are gone. Verify (final Boost audit):
+      `grep -rn boost src daemon examples test` empty; `nm -C libbonefish.a
+      | grep -ci boost` = 0; `ldd` daemon has no boost libs; ctest green.
 
 ## Phase P3 - Platform validation (22.04 + 24.04)
 
