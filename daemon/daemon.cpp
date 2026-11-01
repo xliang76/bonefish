@@ -29,7 +29,6 @@
 #include <bonefish/websocket/websocket_server.hpp>
 
 #include <boost/asio/ip/address.hpp>
-#include <boost/bind.hpp>
 #include <signal.h>
 #include <string.h>
 
@@ -105,7 +104,9 @@ void daemon::run()
 {
     m_work.reset(new boost::asio::io_service::work(m_io_service));
     m_termination_signals.async_wait(
-            boost::bind(&daemon::termination_signal_handler, this, _1, _2));
+            [this](const boost::system::error_code& error_code, int signal_number) {
+                termination_signal_handler(error_code, signal_number);
+            });
 
     if (m_rawsocket_server) {
         m_rawsocket_server->start();
@@ -121,7 +122,7 @@ void daemon::run()
 void daemon::shutdown()
 {
     if (m_work.get()) {
-        m_io_service.dispatch(boost::bind(&daemon::shutdown_handler, this));
+        m_io_service.dispatch([this]() { shutdown_handler(); });
     }
 }
 
@@ -174,7 +175,9 @@ void daemon::termination_signal_handler(
         // terminate upon receipt of one of the registered signals.
         assert(0);
         m_termination_signals.async_wait(
-                boost::bind(&daemon::termination_signal_handler, this, _1, _2));
+                [this](const boost::system::error_code& error_code, int signal_number) {
+                    termination_signal_handler(error_code, signal_number);
+                });
     }
 }
 
