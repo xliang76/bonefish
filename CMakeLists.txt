@@ -79,7 +79,10 @@ include_directories(
 
 link_directories(${CMAKE_INSTALL_PREFIX}/lib)
 
+enable_testing()
+
 add_subdirectory(examples)
 add_subdirectory(src)
 add_subdirectory(daemon)
 add_subdirectory(test)
+add_subdirectory(bench)
