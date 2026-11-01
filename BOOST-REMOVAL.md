@@ -66,13 +66,19 @@ construction. Revised order, each step keeps ctest green:
       push that patch to xliang76/websocketpp (owner approval) + re-pin +
       set `CMAKE_CXX_STANDARD 20`. The patch rewrites line-initial
       template-id ctor/dtor declarations to plain names (same shape as
-      zaphoyd develop's fix) in 5 headers: logger/basic.hpp (7 sites),
+      zaphoyd develop's fix) in 4 headers: logger/basic.hpp (7 sites),
       logger/syslog.hpp (2), endpoint.hpp (1 dtor),
-      roles/server_endpoint.hpp (3), roles/client_endpoint.hpp (mirror
-      of endpoint.hpp), e.g. `~endpoint<connection,config>() {}` ->
-      `~endpoint() {}`. Tested diff kept at
-      /tmp/opencode/websocketpp-cpp20-fix.patch (regenerable by applying
-      that rewrite to the 0.8.2 pin).
+      roles/server_endpoint.hpp (3), e.g.
+      `~endpoint<connection,config>() {}` -> `~endpoint() {}`. Tested
+      diff kept at /tmp/opencode/websocketpp-cpp20-fix.patch
+      (regenerable by applying that rewrite to the 0.8.2 pin).
+      STATUS 2026-11-01: the patch is COMMITTED in the fork checkout at
+      ../websocketpp on branch feature/modernize-cpp20 (commit f49d256,
+      parent = the current pin 1b11fd3; verified: whole bonefish tree +
+      syslog/basic logger instantiations syntax-clean at -std=c++20).
+      REMAINING: push that branch to xliang76/websocketpp (owner),
+      `git submodule update --remote`-free re-pin to f49d256, flip
+      CMAKE_CXX_STANDARD 20.
 
 Remaining facilities not in the list (verified absent): none other beyond
 `boost/preprocessor` (trace, 2c') and the Boost.Asio engine (2f').

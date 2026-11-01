@@ -91,6 +91,14 @@ mergeable with `master`. Do **not** read, touch, or merge the branch
   P0-era history. All phases P0-P5 now complete EXCEPT the three
   owner-approval items: push (activates CI + badge), merge/tag decision,
   websocketpp C++20 patch upstreaming.
+- 2026-11-01: C++20 unblock advanced on the websocketpp side: the tested
+  13-line template-id fix is committed in the fork checkout (../websocketpp)
+  on branch `feature/modernize-cpp20` (commit `f49d256`, parent = current
+  pin `1b11fd3`); daemon TU + basic/syslog logger instantiations verified
+  syntax-clean at -std=c++20 against that branch. Doc correction along the
+  way: the fix touches 4 headers, not 5 (client_endpoint.hpp has no
+  line-initial template-id declarations). Awaiting owner push of the branch
+  -> then re-pin + flip CMAKE_CXX_STANDARD 20.
 
 ## Phase P0 - Guardrails first (no code change)
 
